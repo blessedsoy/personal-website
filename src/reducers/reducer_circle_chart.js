@@ -11,7 +11,7 @@ export default function(state = [], action){
     margin : {
       top: 60,
       bottom: 80,
-      left: 80,
+      left: 100,
       right: 80 
     },
     data : [
