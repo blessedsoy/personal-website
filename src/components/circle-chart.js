@@ -32,7 +32,7 @@ class CircleChart extends Component {
 
     const node = this.node
     const xScale = scaleLinear()
-        .domain(extent(data, d => d.age)) //****
+        .domain(extent(data, d => d.age))
         .range([0, width]);
     const yScale = scaleLinear()
        .domain([1,5]) //****
@@ -79,13 +79,13 @@ class CircleChart extends Component {
           .attr("transform", "translate(0,0)")
           .call(yAxis)
 
-        select(node).select('.y.axis')
+        select(node).select('.axis y')
           .append("text")
           .classed("y axis-label", true)
           .attr("transform", "translate(" + -56 + "," + height/2+ ") rotate(-90)")
           .text("Rating (1=Low, 5=High)");
 
-        select(node).select('.x.axis')
+        select(node).select('.axis x')
           .append("text")
           .classed("x axis-label", true)
           .attr("transform", "translate(" + width/2 + "," + 48 + ")")
@@ -116,9 +116,7 @@ class CircleChart extends Component {
     //update() for <g>
     select(node)
       .selectAll('.donut')
-        // .data(data)
         .style('fill', (d,i) => ordinalColorScale(i))
-        // .attr('x', (d,i) => xScale(d.key))
         .on("mouseover", (d,i) => {
           select("." + d)
             .transition()
@@ -181,11 +179,27 @@ class CircleChart extends Component {
     }
 
 render() {
+  // console.log(this.props.circleChartData[0].data)
+  const data = this.props.circleChartData[0].data
+  const donuts = keys(data[0]).filter(d => d !== 'age' && d !== 'responses');
+  donuts.forEach(donut => {
+      let arr = data.map(d =>{
+        return {
+          key: donut,
+          value: d[donut],
+          age: d.age,
+          responses: d.responses
+        };
+      });
+    // console.log(arr)
+  });
+  
   const circleChartData = this.props.circleChartData[0]
       return (
-        <svg id='chart' width={circleChartData.w} height={circleChartData.h} >
-          <g className='display' transform={this.transform()} ref={node => this.node = node}></g>
-        </svg>
+        // <svg id='chart' width={circleChartData.w} height={circleChartData.h} >
+        //   <g className='display' transform={this.transform()} ref={node => this.node = node}></g>
+        // </svg>
+        <div></div>
       );
    }
 }

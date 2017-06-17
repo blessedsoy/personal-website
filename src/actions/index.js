@@ -1,3 +1,5 @@
+import axios from 'axios';
+
 export const FETCH_BAR_CHART_DATA = "FETCH_BAR_CHART_DATA"
 
 export function fetchBarChartData() {
@@ -34,3 +36,5 @@ export function fetchBarChartData() {
     payload: request
   };
 }
+
+
