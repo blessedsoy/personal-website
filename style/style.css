@@ -15,7 +15,7 @@ body,html{
 /* bar-chart && circle-chart */
 
 #chart{
-  background-color: #F5F2EB;
+  background-color: #888;
   border: 1px solid #CCC;
 }
 .bar{
@@ -46,8 +46,8 @@ body,html{
 }
 .trendline {
   fill: none;
-  stroke: #ccc;
-  stroke-width: 4px;
+  stroke: #ddd;
+  stroke-width: 3px;
 }
 .area{
   opacity: 0.25;
@@ -64,15 +64,18 @@ body,html{
 }
 .axis-label{
   text-anchor: middle;
+  color: #eee;
+  font-size: 150%;
 }
 .chart-header{
   text-transform: capitalize;
-  font-size: 125%;
+  font-size: 150%;
+  color: #eee;
 }
 
-.axis line {
+/*.trendline {
     fill: none;
-    stroke: grey;
-    stroke-width: 1;
+    stroke: black;
+    stroke-width: 3px;
     shape-rendering: crispEdges;
-}
+}*/

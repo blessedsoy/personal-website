@@ -109,9 +109,11 @@ class BarChart extends Component {
 render() {
       const barChartData = this.props.barChartData[0]
       return (
-        <svg id='chart' width={barChartData.w} height={barChartData.h} >
-          <g className='display' transform={this.transform()} ref={node => this.node = node}></g>
-        </svg>
+        // <svg id='chart' width={barChartData.w} height={barChartData.h} >
+        //   <g className='display' transform={this.transform()} ref={node => this.node = node}></g>
+        // </svg>
+        <div>
+        </div>
       );
    }
 }

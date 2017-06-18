@@ -3,13 +3,14 @@ import { connect } from 'react-redux';
 import axios from 'axios';
 import _ from 'lodash';
 
-import { scale, schemeCategory10, scaleOrdinal, scaleLinear, scaleBand, bandwidth, rangeRoundBands } from 'd3-scale';
-import { max, extent } from 'd3-array'
-import { select, style } from 'd3-selection'
-import { axisBottom, axisLeft, ticks, tickValues, tickSize, tickFormat } from 'd3-axis'
-import { keys } from 'd3-collection'
-import { transition } from 'd3-transition'
-import { line, trendline } from 'd3-shape'
+import { scale, schemeCategory20, scaleOrdinal, scaleLinear } from 'd3-scale';
+import { max, extent } from 'd3-array';
+import { select, style } from 'd3-selection';
+import { keys } from 'd3-collection';
+import { axisBottom, axisLeft, ticks, tickValues, tickSize, tickFormat, tickSizeInner, tickPadding } from 'd3-axis';
+import { transition } from 'd3-transition';
+import { line, trendline } from 'd3-shape';
+import { scaleDiscontinuous, discontinuityRange } from 'd3fc-discontinuous-scale';
 
 class NycDeathChart extends Component {
   constructor(props) {
@@ -17,12 +18,12 @@ class NycDeathChart extends Component {
     this.state = {
       data: [],
       w: 1000,
-      h: 700,
+      h: 1000,
       margin: {
-        top: 100,
-        bottom: 60,
-        left: 80,
-        right: 300
+        top: 200,
+        bottom: 80,
+        left: 100,
+        right: 80
       },
       leading_cause: []
     };
@@ -54,107 +55,120 @@ class NycDeathChart extends Component {
     const width = w - margin.left - margin.right;
     const height = h - margin.top - margin.bottom;
 
-    // const leading_cause = _.uniqBy(data, 'leading_cause').map((e, i)=> e.leading_cause);
-    const leading_cause = ["Accidents Except Drug Posioning (V01-X39, X43, X45-X59, Y85-Y86)", "All Other Causes", "Assault (Homicide: Y87.1, X85-Y09)", "Cerebrovascular Disease (Stroke: I60-I69)", "Chronic Liver Disease and Cirrhosis (K70, K73)", "Chronic Lower Respiratory Diseases (J40-J47)", "Diabetes Mellitus (E10-E14)", "Diseases of Heart (I00-I09, I11, I13, I20-I51)", "Essential Hypertension and Renal Diseases (I10, I12)", "Human Immunodeficiency Virus Disease (HIV: B20-B24)", "Influenza (Flu) and Pneumonia (J09-J18)", "Intentional Self-Harm (Suicide: X60-X84, Y87.0)", "Malignant Neoplasms (Cancer: C00-C97)", "Mental and Behavioral Disorders due to Accidental …ve Substance Use (F11-F16, F18-F19, X40-X42, X44)", "Congenital Malformations, Deformations, and Chromosomal Abnormalities (Q00-Q99)", "Nephritis, Nephrotic Syndrome and Nephrisis (N00-N07, N17-N19, N25-N27)", "Certain Conditions originating in the Perinatal Period (P00-P96)"]
-      // .split(' (')[0])
-    // const deaths = _.uniqBy(data, 'deaths').map((e, i)=> e.deaths)
+    const leading_cause = _.uniqBy(data, 'leading_cause').map((e, i)=> e.leading_cause);
     const age_adjusted_death_rate = _.uniqBy(data, 'age_adjusted_death_rate').map((e, i)=> e.age_adjusted_death_rate)
-
-    const tickValues = [2007,2008,2009,2010,2011,2012,2013,2014];
+    const tickValues = [2007,2008,2009,2010,2011,2012,2013,2014,2015];
+    const myTickSize = d => {
+      if (d === 50) {
+        return 20;
+      }
+      return 10
+    }
     const node = this.node
     const xScale = scaleLinear()
         .domain(extent(tickValues, d => d))//****
         .range([0, width]);
+    // const yScale = scaleDiscontinuous(scaleLinear())
+    //     .discontinuityProvider(discontinuityRange ([50,120],[200,300]))
+    //     .domain(extent(age_adjusted_death_rate, d => +d))
+    //     .range([height,0]);
     const yScale = scaleLinear()
-        // scaleBand()
-       // .domain(leading_cause) //****
-       .domain(extent(age_adjusted_death_rate, d => +d))
-       .range([height,0]);
+        .domain(extent(age_adjusted_death_rate, d => +d))
+        .range([height,0]);
     const xAxis = axisBottom(xScale)
                   .tickFormat(d => d.toFixed(0))
-                  .tickValues(tickValues)//****
+                  .tickValues(tickValues)
+                  .tickSizeInner(20)//****
     const xGridlines = axisBottom(xScale)
                   .tickValues(tickValues) //****
                   .tickSize(height,height) //****
                   .tickFormat("") //*****
     const yAxis = axisLeft(yScale)
                   .ticks(5)
-                  .tickSize(10)
-                  // .ticks(leading_cause.length) //****
-                  // .tickSize(5) //****
-                  // .tickFormat(d => d)
-                  
+                  .tickSizeInner(20)
+                  // .tickSize(20)
     const yGridlines = axisLeft(yScale)
                       .tickSize(-width,0,0) //****
                       .tickFormat("")
 
-    const valueline = line()
-                .x(d => xScale(parseInt(d.year)) )
-                .y(d => {
-                  console.log(d)
-                  return yScale(parseInt(d.age_adjusted_death_rate))});
 
-    const ordinalColorScale = scaleOrdinal(schemeCategory10);
-    // const ageAdjustedRateScale = scaleLinear() //****
-    //                       .domain(extent(data, d => +d.age_adjusted_death_rate))
-    //                       .range([5,50])
+    const ordinalColorScale = scaleOrdinal(schemeCategory20);
     const deathRateScale = scaleLinear()
                           .domain(extent(data, d => +d.death_rate))
-                          .range([10,20]);
-    
+                          .range([10,50]);  
+    // let initialize = 1;
 
-    
-    let initialize = 1;
-
-    const drawAxis = () => {
-      if (initialize) {
+    // const drawAxis = () => {
+    //   if (initialize) {
         select(node).append('g')
+          .call(xGridlines)
           .classed('gridline x', true)
           .attr("transform", "translate(0,0)")
-          .call(xGridlines)
 
         select(node).append('g')
+          .call(yGridlines) 
           .classed("gridline y", true)
           .attr("transform", "translate(0,0)")
-          .call(yGridlines) 
 
         select(node).append('g')
+          .call(xAxis)
           .classed('axis x', true)
           .attr("transform", "translate(" + 0 + "," + height + ")")
-          .call(xAxis)
-
-
-        select(node).append('g')
-          .classed("axis y", true)
-          .attr("transform", "translate(0,0)")
-          .call(yAxis)
-
-        select(node).select('.y.axis')
-          .append("text")
-          .classed("y axis-label", true)
-          .attr("transform", "translate(" + -56 + "," + height/2+ ") rotate(-90)")
-          .text("Cause of Death");
-
-        select(node).select('.x.axis')
           .append("text")
           .classed("x axis-label", true)
-          .attr("transform", "translate(" + width/2 + "," + 48 + ")")
+          .attr("transform", "translate(" + width/2 + "," + 55 + ")")
           .text("Year")
+          .style('fill', '#ddd');
+
+        select(node).selectAll("g.tick")
+          .selectAll("text")
+            .attr("x", 50)
+            .attr("dy", null)
+            .style("text-anchor", null)
+
 
         select(node).append('g')
+          .call(yAxis)
+          .classed("axis y", true)
+          .attr("transform", "translate(0,0)")
           .append("text")
+          .classed("y axis-label", true)
+          .attr("transform", "translate(" + -60 + "," + height/2+ ") rotate(-90)")
+          .text("Age Adjusted Death Rate")
+          .style('fill', '#ddd');
+
+        // select(node).select('.axis.y')
+        //   .append("text")
+        //   .classed("y axis-label", true)
+        //   .attr("transform", "translate(" + -56 + "," + height/2+ ") rotate(-90)")
+        //   .text("Age Adjusted Death Rate");
+
+        // select(node).select('.axis.x')
+        //   .append("text")
+        //   .classed("x axis-label", true)
+        //   .attr("transform", "translate(" + width/2 + "," + 48 + ")")
+        //   .text("Year")
+
+        select(node).append('g')
+          .append("foreignObject")
           .classed("chart-header", true)
           .text("")
-          .attr("transform", "translate(0," + -24 + ")")
-        initialize = 0;
-        }
-      }
+          .attr("height", 20)
+          .attr("width", width - 400)
+          .attr("transform", "translate(400," + -170 + ")")
+
+        select(node).selectAll("text")
+        .filter(d => d == '2015').remove()
+
+    //     initialize = 0;
+    //     }
+    //   }
     
-    drawAxis.call(null,this)
+    // drawAxis.call(null,this)
 
 
     const races = ["Asian", "Black", "Hispanic", "White"]
-    const realRaces = ["Asian and Pacific Islander", "Black Non-Hispanic", "Hispanic", "White Non-Hispanic"]
+    const realRaces = ["Asian and Pacific Islander", "Black Non-Hispanic", "Hispanic", "White Non-Hispanic"]   
 
     //enter() for <g>
     select(node)
@@ -169,22 +183,13 @@ class NycDeathChart extends Component {
     select(node)
       .selectAll('.race')
         .style('fill', (d,i) => ordinalColorScale(i))
-        .on("mouseover", (d,i) => {
-          select("." + d)
-            .transition()
-            .style("opacity", 1);
-        })
-        .on("mouseout", (d,i) => {
-          select("." + d)
-            .transition()
-            .style("opacity", 0.4);
-        })
 
-    realRaces.forEach(race => {
+    realRaces.forEach((race, i) => {
       let simple_race = race.split(' ')[0]
       let g = select(node).selectAll("g." + simple_race);
       let same_race = data.filter((e,i) => e.race_ethnicity == race)
-      let arr = same_race.map((d,i) =>{
+     
+      let arr = same_race.map((d) =>{
         return {
           race: race,
           rate: parseInt(d.death_rate),
@@ -196,66 +201,160 @@ class NycDeathChart extends Component {
         };
       });
 
+      // let same_race_by_causes = [];  
+
+      // leading_cause.forEach(cause => {
+      //   let same_race_same_cause = same_race.filter((e,i) => e.leading_cause == cause);
+        
+      //   if(same_race_same_cause.length > 0){ 
+
+      //     let obj_of_same_race_same_cause = {
+      //       key: same_race_by_causes.length + 1,
+      //       value: []
+      //     }          
+      //     obj_of_same_race_same_cause['value'] = same_race_same_cause;
+
+      //     same_race_by_causes.push(obj_of_same_race_same_cause);          
+      //   }        
+        
+      // })
+
+      const valueline = line()
+            .x(d => xScale(parseInt(d.year)) + (i+1) * 22 )
+            .y(d => yScale(parseInt(d.age_adjusted_death_rate)));
+
       leading_cause.forEach(cause => {
-        let same_race_same_cause = same_race.filter((e,i) => e.leading_cause == cause);
+        let same_race_same_cause = same_race.filter((e,i) => e.leading_cause == cause).sort((a,b)=> a.year - b.year);
         
         if(same_race_same_cause.length > 0){ 
           let class_name = cause.split(' ')[0].split(',')[0]
 
-          //enter()
+          //enter() for line
           g.selectAll("path." + class_name) 
             .data(same_race_same_cause)
             .enter()
               .append("path")
               .classed("trendline " + class_name , true)
-          //update()
+          //update() for line
           g.selectAll("path." + class_name) 
               .attr("d", valueline(same_race_same_cause))
-              .attr("fill", 'none');
-          //exit()
+              .style("stroke-opacity", 0)
+          //exit() for line
           g.selectAll("path." + class_name) 
             .data(same_race_same_cause)
             .exit()
             .remove()
-        }
-      })
-
-        //enter()
-        g.selectAll(".age_adj_rate")
-          .data(arr)
+        
+        //enter() for circle
+        g.selectAll("circle." + class_name)
+          .data(same_race_same_cause)
           .enter()
             .append("circle")
-            .classed("age_adj_rate", true);
-        //update()
-        g.selectAll(".age_adj_rate")
-          // .attr("r", 20)
-          // .attr("r", d => ageAdjustedRateScale(d.age_adj_rate))
-          .attr("r", d => deathRateScale(d.rate))
-          .attr("cx", d => xScale(d.year))
+            .classed("rate " + class_name, true);
+        //update() for circle
+        g.selectAll("circle." + class_name)
+          .attr("r", d => deathRateScale(parseInt(d.death_rate)))
+          .attr("cx", d => xScale(d.year) + (i+1)* 22)
           .attr("cy", d => yScale(d.age_adjusted_death_rate))
           .on("mouseover", (d,i) => {
-            let str = "Race: " + d.race + ", ";
-            str += "Sex: " + d.sex + ", ";
-            str += "Leading Cause: " + d.leading_cause + ", ";
+            let str = "Race: " + d.race_ethnicity + ", ";
+            let str_cause = ''
+            if (d.leading_cause == "All Other Causes"){
+              str_cause = d.leading_cause
+            }
+            else if (d.leading_cause.split('(')[1].split(':')[1] === undefined){
+              str_cause = d.leading_cause.split('(')[0]
+            } else {
+              str_cause = d.leading_cause.split('(')[0] + "(" + d.leading_cause.split('(')[1].split(':')[0]+ ")"
+            }
+            // str += "Sex: " + d.sex + ", ";
+            str += "\nLeading Cause: " + str_cause + ", ";
             str += "Deaths: " + d.deaths + ", ";
             str += "age_adjusted_death_rate:" + d.age_adjusted_death_rate;
-            select(".chart-header").text(str);
+            select(".chart-header").text(str)
+            // let causeLabel = [];
+            // d.leading_cause.split(' ')
+            //   console.log(causeLabel)
+            // select(".cause-label").text(d.leading_cause)
+            // select('.' + d.leading_cause.split(' ')[0].split(',')[0])
+            // .transition()
+            // .style("opacity",1)
           })
           .on("mouseout", (d,i) => {
-            select(".chart-header").text("");
+            select(".chart-header").text("")
+            // select('.' + d.leading_cause.split(' ')[0].split(',')[0])
+            // .transition()
+            // .style("opacity", 0.4)
           })
-        //exit()
-        g.selectAll(".age_adj_rate")
-          .data(arr)
+        //exit() for circle
+        g.selectAll("circle." + class_name)
+          .data(same_race_same_cause)
           .exit()
           .remove();
-    });
 
+
+        
+            g.selectAll('.' + class_name)
+            .on("mouseover", (d,i) => {
+              // console.log('.' + d.race_ethnicity.split(' ')[0] + ' .' + d.leading_cause.split(' ')[0].split(',')[0])
+            g.selectAll('.' + d.race_ethnicity.split(' ')[0] + ' .' + d.leading_cause.split(' ')[0].split(',')[0])
+            .transition()
+            .style("fill-opacity", 1)
+            .style("stroke-opacity", 1)
+             let str = "Race: " + d.race_ethnicity + ", ";
+            let str_cause = ''
+            if (d.leading_cause == "All Other Causes"){
+              str_cause = d.leading_cause
+            }
+            else if (d.leading_cause.split('(')[1].split(':')[1] === undefined){
+              str_cause = d.leading_cause.split('(')[0]
+            } else {
+              str_cause = d.leading_cause.split('(')[0] + "(" + d.leading_cause.split('(')[1].split(':')[0]+ ")"
+            }
+            // str += "Sex: " + d.sex + ", ";
+            str += "\nLeading Cause: " + str_cause + ", ";
+            str += "Deaths: " + d.deaths + ", ";
+            str += "age_adjusted_death_rate: " + d.age_adjusted_death_rate;
+            select(".chart-header").text(str);
+          })
+            .on("mouseout", (d,i) => {
+            g.selectAll('.' + d.race_ethnicity.split(' ')[0] + ' .' + d.leading_cause.split(' ')[0].split(',')[0] )
+            .transition()
+            .style("fill-opacity", 0.2)
+            .style("stroke-opacity", 0)
+            select(".chart-header").text("");
+          })
+        
+        }
+
+      })
+      // same_race_by_causes.forEach((d,i)=>{
+        
+      //   let class_name = d.value.map((d,i) => d.leading_cause)[0].split(' ')[0].split(',')[0]
+      //   console.log(class_name)
+            //enter()
+      //     g.selectAll("path." + class_name) 
+      //       .data(same_race_by_causes)
+      //       .enter()
+      //         .append("path")
+      //         .classed("trendline " + class_name , true)
+      //     //update()
+      //     g.selectAll("path." + class_name) 
+      //         .attr("d", valueline(d.value))
+      //         .attr("fill", 'none');
+      //     //exit()
+      //     g.selectAll("path." + class_name) 
+      //       .data(same_race_by_causes)
+      //       .exit()
+      //       .remove()
+      // })
+
+    });
+  
   }
 
   transform(){
     const translate = `translate(${this.state.margin.left},${this.state.margin.top})`
-
     return (
       `${translate}`
     );
