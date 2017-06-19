@@ -25,7 +25,7 @@ class NycDeathChart extends Component {
         left: 100,
         right: 80
       },
-      leading_cause: []
+      loaded: false
     };
     this.createNycDeathChart = this.createNycDeathChart.bind(this)
   }
@@ -37,7 +37,7 @@ class NycDeathChart extends Component {
     axios.get(ROOT_URL)
     .then(res => {
       const data = res.data;
-      this.setState({ data });
+      this.setState({ data: data, loaded: true });
        
     })
     this.createNycDeathChart()
@@ -48,16 +48,16 @@ class NycDeathChart extends Component {
   }
 
   createNycDeathChart(){
-    const data = this.state.data.filter(e => e.race_ethnicity !== "Other Race/ Ethnicity" && e.race_ethnicity !== "Not Stated/Unknown" && e.sex == "M");
+    const data = this.state.data.filter(e => e.race_ethnicity !== "Other Race/ Ethnicity" && e.race_ethnicity !== "Not Stated/Unknown" && e.sex == this.props.sex);
     const w = this.state.w;
     const h = this.state.h;
     const margin = this.state.margin;
     const width = w - margin.left - margin.right;
     const height = h - margin.top - margin.bottom;
-
     const leading_cause = _.uniqBy(data, 'leading_cause').map((e, i)=> e.leading_cause);
     const age_adjusted_death_rate = _.uniqBy(data, 'age_adjusted_death_rate').map((e, i)=> e.age_adjusted_death_rate)
     const tickValues = [2007,2008,2009,2010,2011,2012,2013,2014,2015];
+    const tickValuesY = [0, 50, 100, 150, 200, 250, 300, 350];
     const myTickSize = d => {
       if (d === 50) {
         return 20;
@@ -73,7 +73,8 @@ class NycDeathChart extends Component {
     //     .domain(extent(age_adjusted_death_rate, d => +d))
     //     .range([height,0]);
     const yScale = scaleLinear()
-        .domain(extent(age_adjusted_death_rate, d => +d))
+        // .domain(extent(age_adjusted_death_rate, d => +d))
+        .domain(extent(tickValuesY, d => d))
         .range([height,0]);
     const xAxis = axisBottom(xScale)
                   .tickFormat(d => d.toFixed(0))
@@ -96,10 +97,10 @@ class NycDeathChart extends Component {
     const deathRateScale = scaleLinear()
                           .domain(extent(data, d => +d.death_rate))
                           .range([10,50]);  
-    // let initialize = 1;
+    let initialize = 1;
 
-    // const drawAxis = () => {
-    //   if (initialize) {
+    const drawAxis = () => {
+      if (!this.state.loaded) {
         select(node).append('g')
           .call(xGridlines)
           .classed('gridline x', true)
@@ -137,18 +138,6 @@ class NycDeathChart extends Component {
           .text("Age Adjusted Death Rate")
           .style('fill', '#ddd');
 
-        // select(node).select('.axis.y')
-        //   .append("text")
-        //   .classed("y axis-label", true)
-        //   .attr("transform", "translate(" + -56 + "," + height/2+ ") rotate(-90)")
-        //   .text("Age Adjusted Death Rate");
-
-        // select(node).select('.axis.x')
-        //   .append("text")
-        //   .classed("x axis-label", true)
-        //   .attr("transform", "translate(" + width/2 + "," + 48 + ")")
-        //   .text("Year")
-
         select(node).append('g')
           .append("foreignObject")
           .classed("chart-header", true)
@@ -160,11 +149,11 @@ class NycDeathChart extends Component {
         select(node).selectAll("text")
         .filter(d => d == '2015').remove()
 
-    //     initialize = 0;
-    //     }
-    //   }
+        initialize = 0;
+        }
+      }
     
-    // drawAxis.call(null,this)
+    drawAxis.call(null,this)
 
 
     const races = ["Asian", "Black", "Hispanic", "White"]
@@ -188,7 +177,6 @@ class NycDeathChart extends Component {
       let simple_race = race.split(' ')[0]
       let g = select(node).selectAll("g." + simple_race);
       let same_race = data.filter((e,i) => e.race_ethnicity == race)
-     
       let arr = same_race.map((d) =>{
         return {
           race: race,
@@ -227,7 +215,7 @@ class NycDeathChart extends Component {
         let same_race_same_cause = same_race.filter((e,i) => e.leading_cause == cause).sort((a,b)=> a.year - b.year);
         
         if(same_race_same_cause.length > 0){ 
-          let class_name = cause.split(' ')[0].split(',')[0]
+          let class_name = cause.split(' ')[0].split(',')[0].split("'")[0]
 
           //enter() for line
           g.selectAll("path." + class_name) 
@@ -297,7 +285,7 @@ class NycDeathChart extends Component {
             g.selectAll('.' + class_name)
             .on("mouseover", (d,i) => {
               // console.log('.' + d.race_ethnicity.split(' ')[0] + ' .' + d.leading_cause.split(' ')[0].split(',')[0])
-            g.selectAll('.' + d.race_ethnicity.split(' ')[0] + ' .' + d.leading_cause.split(' ')[0].split(',')[0])
+            g.selectAll('.' + d.race_ethnicity.split(' ')[0] + ' .' + d.leading_cause.split(' ')[0].split(',')[0].split("'")[0])
             .transition()
             .style("fill-opacity", 1)
             .style("stroke-opacity", 1)
@@ -318,7 +306,7 @@ class NycDeathChart extends Component {
             select(".chart-header").text(str);
           })
             .on("mouseout", (d,i) => {
-            g.selectAll('.' + d.race_ethnicity.split(' ')[0] + ' .' + d.leading_cause.split(' ')[0].split(',')[0] )
+            g.selectAll('.' + d.race_ethnicity.split(' ')[0] + ' .' + d.leading_cause.split(' ')[0].split(',')[0].split("'")[0])
             .transition()
             .style("fill-opacity", 0.2)
             .style("stroke-opacity", 0)

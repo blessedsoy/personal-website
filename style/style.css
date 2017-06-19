@@ -73,6 +73,9 @@ body,html{
   color: #eee;
 }
 
+.death-btn {
+  margin: 10px 30px 0px 30px;
+}
 /*.trendline {
     fill: none;
     stroke: black;
